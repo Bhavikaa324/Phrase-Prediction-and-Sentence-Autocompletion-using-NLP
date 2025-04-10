@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Phrase Prediction and Sentence Autocomplete</title>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Phrase Prediction and Sentence Autocomplete</h1>
+            <p>Enter a prompt and I'll generate continuations for you</p>
+        </div>
+
+        <div class="input-card">
+            <form id="text-form">
+                <div class="input-group">
+                    <div class="prompt-container">
+                        <input type="text" id="prompt" class="prompt-input" name="prompt"
+                               placeholder="Type your prompt here..." autocomplete="off" required>
+                    </div>
+
+                    <div class="settings-row">
+                        <div class="setting">
+                            <label for="num-results">Number of results:</label>
+                            <input type="number" id="num-results" class="number-input"
+                                   name="num_results" value="3" min="1" max="10">
+                        </div>
+                         <div class="setting">
+                            <label for="next-words">Words to generate:</label>
+                            <input type="number" id="next-words" class="number-input"
+                                   name="next_words" value="10" min="1">
+                        </div>
+
+
+                        <button type="submit" class="submit-btn">
+                            <i class="fas fa-magic"></i> Generate
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Generating creative responses...</p>
+        </div>
+
+        <div id="results-wrapper">
+            <div class="results-container" id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('text-form');
+        const output = document.getElementById('output');
+        const loading = document.getElementById('loading');
+        const resultsWrapper = document.getElementById('results-wrapper');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Show loading state
+            loading.style.display = 'block';
+            output.innerHTML = '';
+
+            const prompt = document.getElementById('prompt').value;
+            const numResults = document.getElementById('num-results').value || 3;
+            const nextWords = document.getElementById('next-words').value || 10;
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('num_results', numResults);
+            formData.append('next_words', nextWords);
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                // Hide loading
+                loading.style.display = 'none';
+
+                if (result.generated_texts && result.generated_texts.length > 0) {
+                    result.generated_texts.forEach((text, index) => {
+                        const div = document.createElement('div');
+                        div.classList.add('result-card');
+                        div.innerHTML = `
+                            <div class="result-header">
+                                <span class="result-number">${index + 1}</span>
+                                <h3 class="result-title">Generated Text</h3>
+                            </div>
+                            <div class="result-content">${text}</div>
+                        `;
+                        output.appendChild(div);
+                    });
+                } else {
+                    output.innerHTML = '<div class="no-results">No results were generated. Try a different prompt!</div>';
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                output.innerHTML = '<div class="no-results">An error occurred. Please try again.</div>';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
